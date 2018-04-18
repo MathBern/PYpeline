@@ -6,5 +6,4 @@ import __init__ as PYl
 
 obs = '../Data/xo2b'
 
-PYl.reduc.MasterBias(obs)
-
+PYl.MasterBias(obs)

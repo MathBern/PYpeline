@@ -34,39 +34,35 @@ init_plotting()
 
 #======================================================================#
 
+def convert_to_f64(image_FITS):
+	image_data = aif.getdata(image_FITS, header=False)
+	image_data =  image_data.astype(np.float64)
+	return image_data
 
-
-
-
-
-
-class reduc(object):
+def SaveFits(array_img, outfile):
 	'''
-	Contains all functions of reduction
+	Save a .fits image, given the array to be writen as image and the output file name.
 	'''
+	hdu = aif.PrimaryHDU() #criando o HDU 
+	hdu.data = array_img
+	hdu.writeto(outfile)
 	
-	def __init__(self, obs_dir):
-		self.obs_dir = obs_dir
+
+def MasterBias(obs_dir):
+	'''
+	Creates a masterbias image (median combinatation of bias files)
+	'''
+	bias_dir = obs_dir + '/bias'
+	bias_list_array = glob.glob(bias_dir + '/*.fits')		
+	print (bias_list_array)
+	matrixes_array = []
+	for bias_image_i in bias_list_array:
+		matrixes_array.append(convert_to_f64(bias_image_i))
+	#~ print (matrixes_array)
+	matrixes_array_np = np.array(matrixes_array)
+	master_bias = np.median(matrixes_array_np)
 	
-	def SaveFits(array_img,outfile):
-		'''
-		Save a .fits image, given the array to be writen as image and the output file name.
-		'''
-		
-		hdu = fits.PrimaryHDU() #criando o HDU 
-		hdu.data = array_img
-		hdu.writeto(outfile)
-	
-	def MasterBias(obs_dir):
-		'''
-		Creates a masterbias image (median combinatation of bias files)
-		'''
-		bias_dir = obs_dir + '/bias'
-		bias_fits_array = np.array(glob.glob(bias_dir + '/*.fits'))		
-		master_bias = np.median(bias_fits_array)
-		SaveFits(master_bias,bias_dir + 'masterbias.fits')
-		
-		bias_fits_array = 0 #apenas para zerar a memoria
-		bias_dir = 0 
+	#~ SaveFits(master_bias, bias_dir + '/masterbias.fits')
+
 		
 
