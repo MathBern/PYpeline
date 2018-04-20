@@ -9,6 +9,8 @@ import astropy.io.fits as aif
 import os
 import glob
 
+from numba import jit
+
 def init_plotting(x=9,y=7):
     plt.rcParams['figure.figsize'] = (x,y)
     plt.rcParams['font.size'] = 20
@@ -34,11 +36,13 @@ init_plotting()
 
 #======================================================================#
 
+@jit
 def convert_to_f64(image_FITS):
 	image_data = aif.getdata(image_FITS, header=False)
 	image_data =  image_data.astype(np.float64)
 	return image_data
 
+@jit
 def SaveFits(array_img, outfile):
 	'''
 	Save a .fits image, given the array to be writen as image and the output file name.
@@ -47,7 +51,7 @@ def SaveFits(array_img, outfile):
 	hdu.data = array_img
 	hdu.writeto(outfile)
 	
-
+@jit
 def MasterBias(obs_dir):
 	'''
 	Creates a masterbias image (median combinatation of bias files)
@@ -60,7 +64,7 @@ def MasterBias(obs_dir):
 		matrixes_array.append(convert_to_f64(bias_image_i))
 	#~ print (matrixes_array)
 	matrixes_array_np = np.array(matrixes_array)
-	master_bias = np.median(matrixes_array_np)
+	master_bias = np.median(matrixes_array_np, axis = 0)
 	
 	#~ SaveFits(master_bias, bias_dir + '/masterbias.fits')
 
