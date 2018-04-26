@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 '''
-PYpeline is a package that contains funtcions for data reducing and analisys.
+PYpeline é um pacote que contém funções para fazer a redução de dados astronômicos em formato FITS.
 '''
 
 import numpy as np
@@ -36,37 +39,76 @@ init_plotting()
 
 #======================================================================#
 
-@jit
-def convert_to_f64(image_FITS):
-	image_data = aif.getdata(image_FITS, header=False)
-	image_data =  image_data.astype(np.float64)
-	return image_data
+master_bias_path = 0
+master_flat_path = 0
 
 @jit
+def open_and_convert_to_f64(image_FITS):
+    '''
+    Abre um arquivo .fits e o converte para float64.
+    '''
+
+    image_data = aif.getdata(image_FITS, header=False)
+    image_data = image_data.astype(np.float64)
+    return image_data
+
+# @jit
+# def create_log_file():
+
+
+
 def SaveFits(array_img, outfile):
-	'''
-	Save a .fits image, given the array to be writen as image and the output file name.
-	'''
-	hdu = aif.PrimaryHDU() #criando o HDU 
-	hdu.data = array_img
-	hdu.writeto(outfile)
-	
-@jit
+    '''
+    Salva um arquivo .fits
+    '''
+    hdu = aif.PrimaryHDU() #criando o HDU
+    hdu.data = array_img
+    hdu.writeto(outfile)
+
 def MasterBias(obs_dir):
-	'''
-	Creates a masterbias image (median combinatation of bias files)
-	'''
-	bias_dir = obs_dir + '/bias'
-	bias_list_array = glob.glob(bias_dir + '/*.fits')		
-	print (bias_list_array)
-	matrixes_array = []
-	for bias_image_i in bias_list_array:
-		matrixes_array.append(convert_to_f64(bias_image_i))
-	#~ print (matrixes_array)
-	matrixes_array_np = np.array(matrixes_array)
-	master_bias = np.median(matrixes_array_np, axis = 0)
-	
-	#~ SaveFits(master_bias, bias_dir + '/masterbias.fits')
+    '''
+       Cria um bias combinado a partir das imagens de bias .
+    '''
 
-		
+    bias_dir = obs_dir + '/bias'
+    bias_list_array = glob.glob(bias_dir + '/*.fits')
+    matrixes_array = []
 
+    for bias_image_i in bias_list_array:
+        matrixes_array.append(open_and_convert_to_f64(bias_image_i))
+
+
+    matrixes_array_np = np.array(matrixes_array)
+    master_bias = np.median(matrixes_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
+
+    SaveFits(master_bias, bias_dir + '/MasterBias.fits')
+    global master_bias_path
+    master_bias_path = bias_dir + '/MasterBias.fits'
+
+
+
+def normalize_flat(flat_image):
+    return flat_image/np.mean(flat_image)
+
+
+# def MasterFlat(obs_dir, masterbias_name = obs_dir + '/bias' + 'MasterBias.fits'):
+def MasterFlat(obs_dir):
+    '''
+    Cria um flat combinado a partir das imagens de bias .
+    '''
+
+    flat_dir = obs_dir + '/flat'
+    flat_list_array = glob.glob(flat_dir + '/*.fits')
+    matrixes_array = []
+    print(flat_list_array)
+    print(master_bias_path)
+    for flat_image_i in flat_list_array:
+        matrixes_array.append(normalize_flat(open_and_convert_to_f64(flat_image_i) - open_and_convert_to_f64(master_bias_path)))
+
+    matrixes_array_np = np.array(matrixes_array)
+    master_flat = np.median(matrixes_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
+
+    global master_flat_path
+    master_flat_path = flat_dir + '/MasterFlat.fits'
+
+    SaveFits(master_flat, flat_dir + '/MasterFlat.fits')
