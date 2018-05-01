@@ -5,13 +5,13 @@
 PYpeline é um pacote que contém funções para fazer a redução de dados astronômicos em formato FITS.
 '''
 
+#Importando bibliotecas necessárias
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import astropy.io.fits as aif
 import os
 import glob
-
 from numba import jit
 
 def init_plotting(x=9,y=7):
@@ -39,8 +39,8 @@ init_plotting()
 
 #======================================================================#
 
-master_bias_path = 0
-master_flat_path = 0
+master_bias_image = None
+master_flat_image = None
 
 @jit
 def open_and_convert_to_f64(image_FITS):
@@ -65,50 +65,82 @@ def SaveFits(array_img, outfile):
     hdu.data = array_img
     hdu.writeto(outfile)
 
-def MasterBias(obs_dir):
+def CreateMasterBias(obs_dir):
     '''
-       Cria um bias combinado a partir das imagens de bias .
+    Cria um bias combinado, pela mediana, a partir das imagens de bias .
     '''
 
     bias_dir = obs_dir + '/bias'
-    bias_list_array = glob.glob(bias_dir + '/*.fits')
-    matrixes_array = []
+    bias_list = glob.glob(bias_dir + '/*.fits')
+    images_array = []
 
-    for bias_image_i in bias_list_array:
-        matrixes_array.append(open_and_convert_to_f64(bias_image_i))
-
-
-    matrixes_array_np = np.array(matrixes_array)
-    master_bias = np.median(matrixes_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
-
-    SaveFits(master_bias, bias_dir + '/MasterBias.fits')
-    global master_bias_path
-    master_bias_path = bias_dir + '/MasterBias.fits'
+    for bias_image_i in bias_list:
+        images_array.append(open_and_convert_to_f64(bias_image_i))
 
 
+    images_array_np = np.array(images_array)
+    master_bias = np.median(images_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
 
-def normalize_flat(flat_image):
-    return flat_image/np.mean(flat_image)
+    global master_bias_image
+    master_bias_image = obs_dir + '/MasterBias.fits'
+
+    SaveFits(master_bias, master_bias_image)
+
+    return None
+
+
+
+def normalize_by_mean(array):
+    '''
+    Normaliza um array pela média.
+    '''
+    return array/np.mean(array)
 
 
 # def MasterFlat(obs_dir, masterbias_name = obs_dir + '/bias' + 'MasterBias.fits'):
-def MasterFlat(obs_dir):
+def CreateMasterFlat(obs_dir):
     '''
     Cria um flat combinado a partir das imagens de bias .
     '''
 
     flat_dir = obs_dir + '/flat'
-    flat_list_array = glob.glob(flat_dir + '/*.fits')
-    matrixes_array = []
-    print(flat_list_array)
-    print(master_bias_path)
-    for flat_image_i in flat_list_array:
-        matrixes_array.append(normalize_flat(open_and_convert_to_f64(flat_image_i) - open_and_convert_to_f64(master_bias_path)))
+    flat_list = glob.glob(flat_dir + '/*.fits')
+    images_array = []
+    for flat_image_i in flat_list:
+        images_array.append(normalize_by_mean(open_and_convert_to_f64(flat_image_i) - open_and_convert_to_f64(master_bias_image)))
 
-    matrixes_array_np = np.array(matrixes_array)
-    master_flat = np.median(matrixes_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
+    images_array_np = np.array(images_array)
+    master_flat = np.median(images_array_np, axis = 0) #axis = 0 faz com que a combinação seja pixel a pixel de cada imagem
 
-    global master_flat_path
-    master_flat_path = flat_dir + '/MasterFlat.fits'
+    global master_flat_image
+    master_flat_image = obs_dir + '/MasterFlat.fits'
 
-    SaveFits(master_flat, flat_dir + '/MasterFlat.fits')
+    SaveFits(master_flat, master_flat_image)
+    return None
+
+def ReduceCompletely(obs_dir, combine_images = 0):
+    '''
+    Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
+    '''
+
+    sci_raw_dir = obs_dir + '/science_raw'
+    sci_red_dir = obs_dir + '/science_reduced'
+    sci_raw_list = glob.glob(sci_raw_dir + '/*.fits')
+
+    images_array = []
+    bias = open_and_convert_to_f64(master_bias_image)
+    flat = open_and_convert_to_f64(master_flat_image)
+    for sci_raw_image_i in sci_raw_list:
+        images_array.append((open_and_convert_to_f64(sci_raw_image_i) - bias)/flat)
+
+    images_array_np = np.array(images_array)
+
+    if combine_images == 1:
+        SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_median.fits')
+    elif combine_images == 2:
+        SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_mean.fits')
+    else:
+        for i in range(len(images_array_np)):
+            SaveFits(images_array_np[i], sci_red_dir + '/reduced' + str(i) + '.fits')
+
+    return None

@@ -7,5 +7,7 @@ import __init__ as PYl
 
 obs = '../Data/xo2b'
 
-PYl.MasterBias(obs)
-PYl.MasterFlat(obs)
+PYl.CreateMasterBias(obs)
+PYl.CreateMasterFlat(obs)
+PYl.ReduceCompletely(obs, combine_images = 1)
+PYl.ReduceCompletely(obs, combine_images = 2)
