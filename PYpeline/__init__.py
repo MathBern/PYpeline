@@ -28,12 +28,7 @@ def open_and_convert_to_f64(image_FITS):
     image_data = image_data.astype(np.float64)
     return image_data
 
-# @jit
-# def create_log_file():
-
-
-
-def SaveFits(array_img, outfile,array_header = None):
+def SaveFits(array_img, outfile, array_header = None):
     '''
     Salva um arquivo .fits
     INPUT 1 [np.array]: dados da imagem, já convertido em array do numpy.
@@ -66,6 +61,9 @@ def CreateMasterBias(obs_dir):
     OUTPUT [fits]: arquivo de bias combinado pela mediana (MasterBias.fits)
     return None
     '''
+
+    if os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits'):
+        os.system('rm '+ obs_dir + '/auxiliary_images/MasterBias.fits')
 
     bias_dir = obs_dir + '/bias'
     bias_list = glob.glob(bias_dir + '/*.fits')
@@ -108,9 +106,8 @@ def CreateMasterFlat(obs_dir):
     return None
     '''
 
-    # if (not os.path.isfile(os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits')):
-    #     os.system('rm '+'obs_dir + '/auxiliary_images/MasterFlat.fits'')
-
+    if os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits'):
+        os.system('rm '+ obs_dir + '/auxiliary_images/MasterFlat.fits')
 
     flat_dir = obs_dir + '/flat'
     flat_list = glob.glob(flat_dir + '/*.fits')
@@ -134,11 +131,12 @@ def CreateMasterFlat(obs_dir):
 
     return None
 
-def ReduceCompletely(obs_dir, combine_images = 0):
+def ReduceCompletely(obs_dir, name = 'reduced', combine_images = 0):
     '''
     Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
     INPUT 1 [str] : caminho da pasta dos dados de observação.
-    INPUT 2 [int]: parâmetro de escolha de combinação, ou não das imagens:
+    INPUT 2 [str] : nome da imagem reduzida (não é necessário colocar o caminho todo).
+    INPUT 3 [int]: parâmetro de escolha de combinação, ou não das imagens:
              1 combina pela mediana.
              2 combina pela média.
              outro: não combina as imagens.
@@ -146,8 +144,15 @@ def ReduceCompletely(obs_dir, combine_images = 0):
     return None
     '''
 
-    if (not os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits') or not os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits')):
+    global master_bias_image
+    master_bias_image = obs_dir + '/auxiliary_images/MasterBias.fits'
+    global master_flat_image
+    master_flat_image = obs_dir + '/auxiliary_images/MasterFlat.fits'
+
+    if (not os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits')):
         CreateMasterBias(obs_dir)
+
+    if (not os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits')):
         CreateMasterFlat(obs_dir)
 
     sci_raw_dir = obs_dir + '/science_raw'
@@ -163,13 +168,65 @@ def ReduceCompletely(obs_dir, combine_images = 0):
     images_array_np = np.array(images_array)
 
     if combine_images == 1:
-        SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_median.fits')
+        if not os.path.isfile(sci_red_dir + '/' + name + '_comb_median.fits'):
+            SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_median.fits')
+        else:
+            print(sci_red_dir + '/' + name + '_comb_median.fits' + ' already exists! So did not create.')
     elif combine_images == 2:
-        SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_mean.fits')
+        if not os.path.isfile(sci_red_dir + '/' + name + '_comb_mean.fits'):
+            SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_mean.fits')
+        else:
+            print(sci_red_dir + '/' + name + '_comb_mean.fits' + ' already exists! So did not create.')
     else:
         for i in range(len(images_array_np)):
-            SaveFits(images_array_np[i], sci_red_dir + '/reduced' + str(i) + '.fits')
+            if(not os.path.isfile(sci_red_dir + '/'+ name + str(i) + '.fits')):
+                SaveFits(images_array_np[i], sci_red_dir + '/' + name + str(i) + '.fits')
+            else:
+                print(sci_red_dir + '/' + name + str(i) + '.fits' + ' already exists! So did not create.')
 
     images_array_np = None
 
     return None
+
+# def ReduceCompletely(obs_dir, combine_images = 0):
+#     '''
+#     Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
+#     INPUT 1 [str] : caminho da pasta dos dados de observação.
+#     INPUT 2 [int]: parâmetro de escolha de combinação, ou não das imagens:
+#              1 combina pela mediana.
+#              2 combina pela média.
+#              outro: não combina as imagens.
+#     OUTPUT [fits] : imagem, ou imagens, de ciência reduzidas de bias e flat.
+#     return None
+#     '''
+#     if (os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits') and os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits')):
+#         global master_bias_image
+#         master_bias_image = obs_dir + '/auxiliary_images/MasterBias.fits'
+#         global master_flat_image
+#         master_flat_image = obs_dir + '/auxiliary_images/MasterFlat.fits'
+#
+#         sci_raw_dir = obs_dir + '/science_raw'
+#         sci_red_dir = obs_dir + '/science_reduced'
+#         sci_raw_list = glob.glob(sci_raw_dir + '/*.fits')
+#
+#         images_array = []
+#         bias = open_and_convert_to_f64(master_bias_image)
+#         flat = open_and_convert_to_f64(master_flat_image)
+#         for sci_raw_image_i in sci_raw_list:
+#             images_array.append((open_and_convert_to_f64(sci_raw_image_i) - bias)/flat)
+#
+#         images_array_np = np.array(images_array)
+#
+#         if combine_images == 1:
+#             SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_median.fits')
+#         elif combine_images == 2:
+#             SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_mean.fits')
+#         else:
+#             for i in range(len(images_array_np)):
+#                 SaveFits(images_array_np[i], sci_red_dir + '/reduced' + str(i) + '.fits')
+#
+#         images_array_np = None
+#     else:
+#         print('Make sure MasterBias.fits AND MasterFlat.fits exists, and have those names! \n if they do not exist create them using CreateMasterBias(observation_directory) and CreateMasterFlat(observation_directory).')
+#
+#     return None
