@@ -53,6 +53,8 @@ import PYpeline as PYl
 
 As funções cujos nomes começam em letra maiúscula são as *funções principais* que fazem diretamente o que se propõe a fazer o PYpeline. Em contrapartida, as começadas em letra minúscula são funcões que são utilizadas pelas *funções principais*.
 
+#### Lista das Funções
+
 ```
 CreateMasterBias(observation_directory)
 ```
@@ -66,7 +68,7 @@ Normaliza um array (que podem ser os dados de um arquivo FITS) pela média.
 
 
 ```
-CreateMasterFlat(obs_dir)
+CreateMasterFlat(observation_directory)
 ```
 Cria um flat combinado a partir das imagens de flat, contidos na pasta *flat*.
 
