@@ -7,7 +7,6 @@ PYpeline é um pacote que contém funções para fazer a redução de dados astr
 
 #Importando bibliotecas necessárias
 import numpy as np
-import pandas as pd
 import astropy.io.fits as aif
 import os
 import glob
@@ -21,7 +20,7 @@ master_flat_image = None
 @jit
 def open_and_convert_to_f64(image_FITS):
     '''
-    Abre um arquivo .fits e o converte para float64.
+    Abre um arquivo .fits e converte seus dados numéricos para float64.
     INPUT [fits]: imagem FITS que terá seus dados numéricos convertidos para float64.
     OUTPUT [numpy.array]: dados da imagem convertidos para array do Numpy, porém float64.
     '''
@@ -89,7 +88,7 @@ def CreateMasterBias(obs_dir):
 
 def normalize_by_mean(array):
     '''
-    Normaliza um array pela média
+    Normaliza um array pela média.
     INPUT [numpy.array]: O array que será normalizado
     OUTPUT [array]: Array normalizado pela média aritimética.
     return None

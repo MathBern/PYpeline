@@ -11,7 +11,6 @@ O pacote foi escrito em linguagem Python 3.6, no ambiente Anaconda 5.1.
 O PYpeline depende de pacotes e módulos para funcionar. São eles:
 
 Numpy
-Pandas
 Astropy
 Os
 Glob
@@ -20,6 +19,8 @@ Numba
 Portanto, certifique-se que o computador os tenha. Recomenda-se que se instale as dependências antes de instalar o PYpeline.
 
 ### Organização do Diretório da Observação
+
+É muito importante que os dados de observação estejam organizados previamente como descritos no *Manual.pdf*! 
 
 ### Instruções de Instalação
 
@@ -57,26 +58,33 @@ CreateMasterBias(observation_directory)
 ```
 Cria um bias combinado, pela mediana, a partir das imagens de bias contidos na pasta *bias*.
 
+
 ```
 normalize_by_mean(array)
 ```
 Normaliza um array (que podem ser os dados de um arquivo FITS) pela média.
+
 
 ```
 CreateMasterFlat(obs_dir)
 ```
 Cria um flat combinado a partir das imagens de flat, contidos na pasta *flat*.
 
+
 ```
 ReduceCompletely(observation_directory, name, combine_images) 
 ```
 Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
+
 
 ```
 open_and_convert_to_f64(image_FITS)
 ```
 Abre um arquivo .fits e converte seus dados numéricos para float64.
 
+
 ```
 save_fits(array_img, outfile, image_header)
 ```
+Salva uma imagem FITS, dado um array do Numpy. O header é opicional e por padrão é o header básico do Astropy.
+
