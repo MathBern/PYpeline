@@ -58,35 +58,35 @@ As funções cujos nomes começam em letra maiúscula são as *funções princip
 ```
 CreateMasterBias(observation_directory)
 ```
-Cria um bias combinado, pela mediana, a partir das imagens de bias contidos na pasta *bias*.
+...Cria um bias combinado, pela mediana, a partir das imagens de bias contidos na pasta *bias*.
 
 
 ```
 normalize_by_mean(array)
 ```
-Normaliza um array (que podem ser os dados de um arquivo FITS) pela média.
+...Normaliza um array (que podem ser os dados de um arquivo FITS) pela média.
 
 
 ```
 CreateMasterFlat(observation_directory)
 ```
-Cria um flat combinado a partir das imagens de flat, contidos na pasta *flat*.
+...Cria um flat combinado a partir das imagens de flat, contidos na pasta *flat*.
 
 
 ```
 ReduceCompletely(observation_directory, name, combine_images) 
 ```
-Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
+...Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
 
 
 ```
 open_and_convert_to_f64(image_FITS)
 ```
-Abre um arquivo .fits e converte seus dados numéricos para float64.
+...Abre um arquivo .fits e converte seus dados numéricos para float64.
 
 
 ```
 save_fits(array_img, outfile, image_header)
 ```
-Salva uma imagem FITS, dado um array do Numpy. O header é opicional e por padrão é o header básico do Astropy.
+....Salva uma imagem FITS, dado um array do Numpy. O header é opicional e por padrão é o header básico do Astropy.
 
