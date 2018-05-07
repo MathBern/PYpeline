@@ -22,13 +22,16 @@ master_flat_image = None
 def open_and_convert_to_f64(image_FITS):
     '''
     Abre um arquivo .fits e o converte para float64.
+    INPUT [fits]: imagem FITS que terá seus dados numéricos convertidos para float64.
+    OUTPUT [numpy.array]: dados da imagem convertidos para array do Numpy, porém float64.
     '''
 
-    image_data = aif.getdata(image_FITS, header=False)
+    image_data, image_header = aif.getdata(image_FITS, header=True)
     image_data = image_data.astype(np.float64)
+
     return image_data
 
-def SaveFits(array_img, outfile, array_header = None):
+def save_fits(array_img, outfile, image_header = None):
     '''
     Salva um arquivo .fits
     INPUT 1 [np.array]: dados da imagem, já convertido em array do numpy.
@@ -39,20 +42,10 @@ def SaveFits(array_img, outfile, array_header = None):
     '''
     hdu = aif.PrimaryHDU() #criando o HDU
     hdu.data = array_img
-    hdu.writeto(outfile)
+    if image_header != None:
+        hdu.header = image_header
 
-# def SaveFits(array_img, outfile):
-#     '''
-#     Salva um arquivo .fits
-#     INPUT 1 [np.array]: dados da imagem, já convertido em array do numpy.
-#     INPUT 2 [str]: nome do arquivo de saída
-#     INPUT 3 [astropy.Header.header]: dados do header da imagem. Se nada inserido, cria um header básico.
-#     OUTPUT [fits]: arquivo fits com o nome dado pelo INPUT 2.
-#     return None
-#     '''
-#     hdu = aif.PrimaryHDU() #criando o HDU
-#     hdu.data = array_img
-#     hdu.writeto(outfile)
+    hdu.writeto(outfile)
 
 def CreateMasterBias(obs_dir):
     '''
@@ -64,10 +57,14 @@ def CreateMasterBias(obs_dir):
 
     if os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits'):
         os.system('rm '+ obs_dir + '/auxiliary_images/MasterBias.fits')
+        print('There was a MasterBias.fits. It was replaced!')
 
     bias_dir = obs_dir + '/bias'
     bias_list = glob.glob(bias_dir + '/*.fits')
     images_array = []
+    bias_header  = aif.PrimaryHDU().header
+    bias_header['FILENAME'] = 'MasterBias.fits'
+    bias_header.comments['FILENAME'] = 'MasterBias created with several combined bias by median.'
 
     for bias_image_i in bias_list:
         images_array.append(open_and_convert_to_f64(bias_image_i))
@@ -79,9 +76,9 @@ def CreateMasterBias(obs_dir):
     global master_bias_image
     master_bias_image = obs_dir + '/auxiliary_images/MasterBias.fits'
 
-    SaveFits(master_bias,master_bias_image)
+    save_fits(master_bias,master_bias_image,bias_header)
 
-    print(master_bias_image)
+    print('Master bias saved on: ' + master_bias_image)
 
     master_bias = None
     images_array_np = None
@@ -92,9 +89,12 @@ def CreateMasterBias(obs_dir):
 
 def normalize_by_mean(array):
     '''
-    Normaliza um array pela média.
+    Normaliza um array pela média
+    INPUT [numpy.array]: O array que será normalizado
+    OUTPUT [array]: Array normalizado pela média aritimética.
+    return None
     '''
-    return array/np.mean(array, axis = 0)
+    return array/np.mean(array)
 
 
 # def MasterFlat(obs_dir, masterbias_name = obs_dir + '/bias' + 'MasterBias.fits'):
@@ -105,13 +105,20 @@ def CreateMasterFlat(obs_dir):
     OUTPUT [fits]: arquivo de flat normalizado (auxiliary_images/MasterFlat.fits)
     return None
     '''
+    global master_bias_image
+    master_bias_image = obs_dir + '/auxiliary_images/MasterBias.fits'
 
     if os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits'):
         os.system('rm '+ obs_dir + '/auxiliary_images/MasterFlat.fits')
+        print('There was a MasterFLat.fits. It was replaced!')
 
     flat_dir = obs_dir + '/flat'
     flat_list = glob.glob(flat_dir + '/*.fits')
     images_array = []
+    flat_header  = aif.PrimaryHDU().header
+    flat_header['FILENAME'] = 'MasterFlat.fits'
+    flat_header.comments['FILENAME'] = 'MasterFlat created with a combination by median of normalized by mean flats.'
+
     for flat_image_i in flat_list:
         images_array.append(normalize_by_mean(open_and_convert_to_f64(flat_image_i) - open_and_convert_to_f64(master_bias_image)))
 
@@ -121,10 +128,10 @@ def CreateMasterFlat(obs_dir):
     global master_flat_image
     master_flat_image = obs_dir + '/auxiliary_images/MasterFlat.fits'
 
-    print(master_flat_image)
-    print(np.mean(master_flat))
+    save_fits(master_flat, master_flat_image, flat_header)
 
-    SaveFits(master_flat, master_flat_image)
+    print('Master flat saved on: ' + master_flat_image)
+    print('Statistical test (close to 1.0 is good!): ' + str(np.mean(master_flat)))
 
     master_flat = None
     images_array_np = None
@@ -159,6 +166,10 @@ def ReduceCompletely(obs_dir, name = 'reduced', combine_images = 0):
     sci_red_dir = obs_dir + '/science_reduced'
     sci_raw_list = glob.glob(sci_raw_dir + '/*.fits')
 
+    sci_red_header = aif.getdata(sci_raw_list[0], header=True)[1]
+    sci_red_header_1 = aif.getdata(sci_raw_list[0], header=True)[1]
+    sci_red_header_2 = aif.getdata(sci_raw_list[0], header=True)[1]
+
     images_array = []
     bias = open_and_convert_to_f64(master_bias_image)
     flat = open_and_convert_to_f64(master_flat_image)
@@ -169,64 +180,24 @@ def ReduceCompletely(obs_dir, name = 'reduced', combine_images = 0):
 
     if combine_images == 1:
         if not os.path.isfile(sci_red_dir + '/' + name + '_comb_median.fits'):
-            SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_median.fits')
+            save_fits(np.median(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_median.fits', sci_red_header_1)
+            print('Reduced image saved on: ' + sci_red_dir + '/' + name + '_comb_median.fits.')
         else:
-            print(sci_red_dir + '/' + name + '_comb_median.fits' + ' already exists! So did not create.')
+            print(sci_red_dir + '/' + name + '_comb_median.fits' + ' already exists! So did not performed image reduction.')
     elif combine_images == 2:
         if not os.path.isfile(sci_red_dir + '/' + name + '_comb_mean.fits'):
-            SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_mean.fits')
+            save_fits(np.mean(images_array_np, axis = 0), sci_red_dir + '/' + name + '_comb_mean.fits', sci_red_header_2)
+            print('Reduced image saved on: ' + sci_red_dir + '/' + name + '_comb_mean.fits.')
         else:
-            print(sci_red_dir + '/' + name + '_comb_mean.fits' + ' already exists! So did not create.')
+            print(sci_red_dir + '/' + name + '_comb_mean.fits' + ' already exists! So did not performed image reduction.')
     else:
         for i in range(len(images_array_np)):
             if(not os.path.isfile(sci_red_dir + '/'+ name + str(i) + '.fits')):
-                SaveFits(images_array_np[i], sci_red_dir + '/' + name + str(i) + '.fits')
+                save_fits(images_array_np[i], sci_red_dir + '/' + name + str(i) + '.fits', sci_red_header_2)
+                print('Reduced image saved on: ' + sci_red_dir + '/' + name + '###.')
             else:
-                print(sci_red_dir + '/' + name + str(i) + '.fits' + ' already exists! So did not create.')
+                print(sci_red_dir + '/' + name + str(i) + '.fits' + ' already exists! So did not performed image reduction.')
 
     images_array_np = None
 
     return None
-
-# def ReduceCompletely(obs_dir, combine_images = 0):
-#     '''
-#     Efetua a redução completa de uma imagem FITS de ciência, subtraindo bias e nivelando pelo flat.
-#     INPUT 1 [str] : caminho da pasta dos dados de observação.
-#     INPUT 2 [int]: parâmetro de escolha de combinação, ou não das imagens:
-#              1 combina pela mediana.
-#              2 combina pela média.
-#              outro: não combina as imagens.
-#     OUTPUT [fits] : imagem, ou imagens, de ciência reduzidas de bias e flat.
-#     return None
-#     '''
-#     if (os.path.isfile(obs_dir + '/auxiliary_images/MasterBias.fits') and os.path.isfile(obs_dir + '/auxiliary_images/MasterFlat.fits')):
-#         global master_bias_image
-#         master_bias_image = obs_dir + '/auxiliary_images/MasterBias.fits'
-#         global master_flat_image
-#         master_flat_image = obs_dir + '/auxiliary_images/MasterFlat.fits'
-#
-#         sci_raw_dir = obs_dir + '/science_raw'
-#         sci_red_dir = obs_dir + '/science_reduced'
-#         sci_raw_list = glob.glob(sci_raw_dir + '/*.fits')
-#
-#         images_array = []
-#         bias = open_and_convert_to_f64(master_bias_image)
-#         flat = open_and_convert_to_f64(master_flat_image)
-#         for sci_raw_image_i in sci_raw_list:
-#             images_array.append((open_and_convert_to_f64(sci_raw_image_i) - bias)/flat)
-#
-#         images_array_np = np.array(images_array)
-#
-#         if combine_images == 1:
-#             SaveFits(np.median(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_median.fits')
-#         elif combine_images == 2:
-#             SaveFits(np.mean(images_array_np, axis = 0), sci_red_dir + '/reduced_comb_mean.fits')
-#         else:
-#             for i in range(len(images_array_np)):
-#                 SaveFits(images_array_np[i], sci_red_dir + '/reduced' + str(i) + '.fits')
-#
-#         images_array_np = None
-#     else:
-#         print('Make sure MasterBias.fits AND MasterFlat.fits exists, and have those names! \n if they do not exist create them using CreateMasterBias(observation_directory) and CreateMasterFlat(observation_directory).')
-#
-#     return None

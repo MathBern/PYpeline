@@ -1,4 +1,5 @@
 import sys
+import astropy.io.fits as aif
 
 # sys.path.append("/home2/matheus15/Tratamento_de_Dados/PYpeline/PYpeline")
 sys.path.append("/home/math/Graduacao/TratamentoDeDados/PYpeline/PYpeline")
