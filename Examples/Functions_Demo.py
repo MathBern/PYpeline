@@ -3,14 +3,11 @@
 import sys
 import astropy.io.fits as aif
 import matplotlib.pyplot as plt
+import PYpeline as PYl
 
-# sys.path.append("/home2/matheus15/Tratamento_de_Dados/PYpeline/PYpeline")
-sys.path.append("/home/math/Graduacao/TratamentoDeDados/PYpeline/PYpeline")
-
-import __init__ as PYl
-
-# obs = '/home2/matheus15/Música/xo2b'
-obs = '../../xo2b'
+#*************
+#Edite PATH colocando o caminho do local em que baixou os dados de exemplo! Recomenda-se colocar na padta Data.
+obs = 'PATH/xo2b'
 
 # criar apenas um masterbias
 PYl.CreateMasterBias(obs)
