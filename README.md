@@ -11,9 +11,13 @@ O pacote foi escrito em linguagem Python 3.6, no ambiente Anaconda 5.1.
 O PYpeline depende de pacotes e módulos para funcionar. São eles:
 
 Numpy
+
 Astropy
+
 Os
+
 Glob
+
 Numba
 
 Portanto, certifique-se que o computador os tenha. Recomenda-se que se instale as dependências antes de instalar o PYpeline.
@@ -85,3 +89,6 @@ save_fits(array_img, outfile, image_header)
 ```
 Salva uma imagem FITS, dado um array do Numpy. O header é opicional e por padrão é o header básico do Astropy.
 
+##Mais Informações
+
+Para informações mais detalhadas sobre o funcionamento do PYpeline, veja o *Manual.pdf*.
